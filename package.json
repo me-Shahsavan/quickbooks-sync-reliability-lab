@@ -1,0 +1,21 @@
+{
+  "name": "quickbooks-sync-reliability-lab",
+  "version": "0.1.0",
+  "description": "A failure-mode catalog for QuickBooks Online integrations — every entry reproducible, every fix a runbook.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "receiver": "tsx src/webhooks/receiver.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
