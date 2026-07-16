@@ -1,4 +1,5 @@
-import type { ChangeEvent } from './types.js';
+import type { ChangeEvent, ParseResult } from './types.js';
+import { canonicalizeOperation } from './operations.js';
 
 /**
  * Parser for the CLOUDEVENTS webhook format (CNCF CloudEvents 1.0), which is
@@ -13,7 +14,7 @@ import type { ChangeEvent } from './types.js';
  *     "datacontenttype": "application/json",
  *     "time": "2025-09-10T21:31:25.179Z",
  *     "intuitentityid": "1234",
- *     "intuitaccountid": "310687",
+ *     "intuitaccountid": "1234567890123456",
  *     "data": {}
  *   }
  * ]
@@ -23,27 +24,39 @@ import type { ChangeEvent } from './types.js';
  *  - realm ID lives in `intuitaccountid` per event (one delivery can span realms)
  *  - entity + operation are encoded in the `type` string ("qbo.<entity>.<operation>.v<n>")
  *  - still no field data: `data` is empty; you follow up with a read or CDC call
+ *
+ * Anything in the array that cannot be normalized — unknown `type` shape,
+ * unknown operation, missing entity/realm IDs — is counted in `rejected`,
+ * never silently skipped (principle P5).
  */
 
 const TYPE_PATTERN = /^qbo\.([a-z]+)\.([a-z]+)\.v\d+$/i;
 
-export function parseCloudEvents(body: unknown): ChangeEvent[] {
-  if (!Array.isArray(body)) return [];
+export function parseCloudEvents(body: unknown): ParseResult {
+  if (!Array.isArray(body)) return { events: [], rejected: 0 };
 
   const events: ChangeEvent[] = [];
+  let rejected = 0;
+
   for (const event of body) {
-    if (event?.specversion == null || typeof event?.type !== 'string') continue;
-    const match = TYPE_PATTERN.exec(event.type);
-    if (!match) continue;
+    const match = typeof event?.type === 'string' ? TYPE_PATTERN.exec(event.type) : null;
+    const operation = match ? canonicalizeOperation(match[2]) : null;
+    const entityId = event?.intuitentityid != null ? String(event.intuitentityid) : '';
+    const realmId = event?.intuitaccountid != null ? String(event.intuitaccountid) : '';
+
+    if (event?.specversion == null || !match || operation === null || !entityId || !realmId) {
+      rejected += 1;
+      continue;
+    }
 
     events.push({
-      realmId: String(event.intuitaccountid ?? ''),
+      realmId,
       entity: match[1]!.toLowerCase(),
-      entityId: String(event.intuitentityid ?? ''),
-      operation: match[2]!.toLowerCase(),
+      entityId,
+      operation,
       occurredAt: String(event.time ?? ''),
       wireFormat: 'cloudevents',
     });
   }
-  return events;
+  return { events, rejected };
 }

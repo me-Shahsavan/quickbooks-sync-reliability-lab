@@ -13,8 +13,8 @@ export interface ChangeEvent {
   entity: string;
   /** ID of the changed entity within the realm. */
   entityId: string;
-  /** Operation, lowercased: "create"/"created", "update"/"updated", "delete", "merge", "void", "emptied". */
-  operation: string;
+  /** Canonical operation — identical regardless of wire format. */
+  operation: CanonicalOperation;
   /** When QuickBooks recorded the change (ISO 8601). */
   occurredAt: string;
   /** Which wire format this event arrived in. */
@@ -22,3 +22,23 @@ export interface ChangeEvent {
 }
 
 export type PayloadFormat = 'legacy' | 'cloudevents' | 'unknown';
+
+/**
+ * The operations QuickBooks emits, in one canonical vocabulary. Legacy says
+ * "Update", CloudEvents says "updated" — consumers should never have to know.
+ */
+export type CanonicalOperation = 'create' | 'update' | 'delete' | 'merge' | 'void' | 'emptied';
+
+/**
+ * What every parser returns: the events it understood, plus a COUNT of the
+ * items it did not. Principle P5 (docs/rfc-001-trustworthy-sync.md): a parser
+ * that quietly skips what it can't read converts contract changes into silent
+ * data loss. Rejected items must be counted and alarmed, never swallowed —
+ * including events with an operation this vocabulary doesn't know yet, since
+ * an unknown operation is a contract change too.
+ */
+export interface ParseResult {
+  events: ChangeEvent[];
+  /** Items present in the payload that could not be normalized. Alarm at > 0. */
+  rejected: number;
+}

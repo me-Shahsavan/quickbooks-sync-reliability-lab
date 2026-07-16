@@ -1,4 +1,4 @@
-import type { ChangeEvent, PayloadFormat } from './types.js';
+import type { ParseResult, PayloadFormat } from './types.js';
 import { parseLegacy } from './parse-legacy.js';
 import { parseCloudEvents } from './parse-cloudevents.js';
 
@@ -19,24 +19,30 @@ export function detectFormat(body: unknown): PayloadFormat {
   return 'unknown';
 }
 
-export interface NormalizeResult {
+export interface NormalizeResult extends ParseResult {
   format: PayloadFormat;
-  events: ChangeEvent[];
 }
 
 /**
  * Dual-format normalizer — the safe shape to run through a format migration.
- * Accepts either format, returns normalized events, and surfaces `unknown`
- * instead of swallowing it.
+ * Accepts either format and returns one normalized event stream plus two
+ * distinct alarm signals:
+ *
+ *  - format === 'unknown'  → the whole payload shape is unrecognized
+ *  - rejected > 0          → the payload shape was recognized, but items
+ *                            inside it could not be normalized (new operation,
+ *                            missing IDs, changed type string, ...)
+ *
+ * Both mean the provider's contract moved under you. Alarm on both.
  */
 export function normalizeAny(body: unknown): NormalizeResult {
   const format = detectFormat(body);
   switch (format) {
     case 'legacy':
-      return { format, events: parseLegacy(body) };
+      return { format, ...parseLegacy(body) };
     case 'cloudevents':
-      return { format, events: parseCloudEvents(body) };
+      return { format, ...parseCloudEvents(body) };
     default:
-      return { format, events: [] };
+      return { format, events: [], rejected: 0 };
   }
 }

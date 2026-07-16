@@ -22,6 +22,7 @@ const counters = {
   deliveries: 0,
   eventsProcessed: 0,
   unknownFormat: 0,
+  rejectedEvents: 0,
   badSignature: 0,
 };
 
@@ -57,7 +58,7 @@ const server = createServer((req, res) => {
       body = undefined;
     }
 
-    const { format, events } = normalizeAny(body);
+    const { format, events, rejected } = normalizeAny(body);
 
     if (format === 'unknown') {
       // The single most important line in this file. A parser that silently
@@ -65,6 +66,12 @@ const server = createServer((req, res) => {
       counters.unknownFormat += 1;
       console.error(`[ALARM] unrecognized webhook payload format (${counters.unknownFormat} total) — investigate before acking more`);
     } else {
+      if (rejected > 0) {
+        // Recognized payload, unreadable items inside it (new operation type,
+        // missing IDs, changed type string). Same class of danger, same alarm.
+        counters.rejectedEvents += rejected;
+        console.error(`[ALARM] ${rejected} event(s) in a recognized payload could not be normalized (${counters.rejectedEvents} total)`);
+      }
       counters.eventsProcessed += events.length;
       for (const event of events) {
         console.log(
