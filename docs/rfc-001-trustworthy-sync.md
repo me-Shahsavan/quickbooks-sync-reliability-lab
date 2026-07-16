@@ -32,15 +32,24 @@ QBO webhooks are best-effort and carry no field data. Any architecture that trea
 them as the delivery guarantee inherits every gap as silent divergence. A standing
 CDC sweep bounds the damage of *any* event-pipeline failure to one sweep interval —
 provided the interval stays comfortably inside CDC's 30-day lookback.
+
+One honest limit: CDC discovers *changes*, not *state*. It cannot reveal divergence
+that predates its window or that no change event describes (a record deleted long
+ago, drift introduced by a bad historical write). Full trust needs a third layer —
+periodic sampled state comparison (SLO 3 in [slo.md](./slo.md)) on top of webhooks
+and CDC.
 *Tested by: chapter 01 (CloudEvents migration), CDC-window chapter (roadmap).*
 
 ### P2 — Every write must be idempotent or explicitly non-retryable
 
 Before retrying any failed write, answer one question: **"can a blind retry create bad
-data?"** Throttles (429) and transient 5xx: retry with jittered backoff. Validation
-and business failures (4xx): never blind-retry — that is how duplicate invoices are
-born. Where QBO offers idempotency hooks, use them; where it doesn't, deduplicate on
-your side before writing.
+data?"** Throttles (429): honor Retry-After or wait ~a minute per Intuit guidance.
+Transient 5xx: retry with jittered backoff. Validation and business failures (4xx):
+never blind-retry — that is how duplicate invoices are born. QBO's idempotency hook is
+the `requestid` parameter: creates sharing a `requestid` are deduplicated server-side,
+so a lost response plus a keyed retry is safe, and an un-keyed retry is a duplicate
+waiting to happen. This lab's client sends one on every write
+([`src/qbo/client.ts`](../src/qbo/client.ts)).
 *Tested by: duplicate-paths and rate-limit chapters (roadmap).*
 
 ### P3 — Classify errors before handling them

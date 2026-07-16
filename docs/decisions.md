@@ -4,6 +4,26 @@ Format: context → decision → consequences. Newest first.
 
 ---
 
+## D-006 — Unknown operations are rejected and alarmed, not defaulted
+
+**Context:** external review of chapter 01 found the CloudEvents parser silently
+skipped events whose `type` string it didn't recognize — contradicting principle P5
+while the repo preached it. Same review: the client's writes carried no `requestid`,
+contradicting P2.
+**Decision:** (a) every parser returns `{ events, rejected }`; anything inside a
+recognized payload that can't be normalized — unknown operation, missing IDs, changed
+type shape — increments `rejected`, which the receiver alarms on. An operation this
+vocabulary doesn't know is treated as a contract change, never defaulted to "update".
+(b) every `write()` carries a `requestid` (caller-provided or generated), and 429s
+wait Retry-After or ~60s per Intuit guidance instead of the generic transient curve.
+**Consequences:** when Intuit introduces a new operation type, integrations alarm and
+a human decides — the alternative (guessing) corrupts state silently. Kept the naive
+parser as `parseLegacyNaive`, clearly labeled, because it *is* chapter 01's repro.
+Lesson recorded honestly: the repo's own first version failed its own principles;
+review against your stated principles before shipping claims about them.
+
+---
+
 ## D-005 — Simulated postmortems, clearly labeled
 
 **Context:** postmortems are the highest-signal reliability artifact, but this is a lab,
@@ -19,9 +39,10 @@ by the runnable repro sitting next to it.
 
 **Context:** requiring an Intuit developer account + sandbox + OAuth dance to see
 anything work would lose most readers in setup.
-**Decision:** every chapter must reproduce its failure offline from recorded fixtures
-(`npm test`, zero config). Live-sandbox repro is the optional second step, and
-fixtures note where a captured real payload should replace/verify a recorded one.
+**Decision:** every chapter must reproduce its failure offline from **synthetic
+fixtures that follow Intuit's documented payload shapes** (`npm test`, zero config).
+Live-sandbox repro is the optional second step, and each fixture notes that a captured
+real payload should verify it before production reliance.
 **Consequences:** 30-second time-to-first-repro; fixtures must be kept honest against
 real captures as the platform evolves.
 

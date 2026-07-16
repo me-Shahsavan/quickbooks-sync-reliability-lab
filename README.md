@@ -1,5 +1,7 @@
 # QuickBooks Sync Reliability Lab
 
+[![CI](https://github.com/me-Shahsavan/quickbooks-sync-reliability-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/me-Shahsavan/quickbooks-sync-reliability-lab/actions/workflows/ci.yml)
+
 > A failure-mode catalog for QuickBooks Online integrations — every entry reproducible,
 > every fix a runbook.
 
@@ -22,7 +24,7 @@ npm install && npm test   # reproduces chapter 01 offline in ~30 seconds — no 
 | # | Failure mode | Severity | Status |
 |---|---|---|---|
 | 01 | [The CloudEvents migration: how your webhooks silently stop](failures/01-cloudevents-migration/README.md) | High — silent data loss | ✅ Published |
-| 02 | SyncToken races: two writers, one invoice, and the 409 you must not retry | High | 🔜 Roadmap |
+| 02 | SyncToken races: two writers, one invoice, and the stale-object error (5010) you must re-read before retrying | High | 🔜 Roadmap |
 | 03 | The sparse-update trap: how a full-object update nulls fields you never touched | High — data loss | 🔜 Roadmap |
 | 04 | CDC's 30-day window: when your safety net expires | Medium | 🔜 Roadmap |
 | 05 | 429 storms: jittered backoff vs. synchronized retry stampedes | Medium | 🔜 Roadmap |
@@ -61,7 +63,7 @@ flowchart LR
         RX[receiver.ts<br/>dual-format + signature + alarms]
         NORM[normalize.ts<br/>one event shape]
         CLIENT[client.ts<br/>429-aware minimal client]
-        FIX[(recorded fixtures<br/>offline repro)]
+        FIX[(synthetic fixtures<br/>offline repro)]
     end
     WH -->|intuit-signature<br/>HMAC-SHA256| RX --> NORM
     FIX --> NORM
@@ -77,8 +79,9 @@ flowchart LR
   abstraction when the subject *is* the failure behavior).
 - `failures/<nn>-<name>/` — one directory per failure mode: README, fixtures, runbook,
   postmortem.
-- Every chapter runs offline from recorded fixtures first; pointing it at your own
-  sandbox company is the optional second step (`.env.example`).
+- Every chapter runs offline first, from synthetic fixtures that follow Intuit's
+  documented payload shapes; pointing it at your own sandbox company is the optional
+  second step (`.env.example`).
 
 ## Method & sources
 

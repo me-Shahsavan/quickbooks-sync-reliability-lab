@@ -19,7 +19,8 @@
 - **Nov 12, 2025** — Intuit announces the webhooks platform rebuild: payloads move from
   the legacy `eventNotifications` envelope to [CloudEvents](https://cloudevents.io/)
   (CNCF spec). ([announcement](https://blogs.intuit.com/2025/11/12/upcoming-change-to-webhooks-payload-structure))
-- **May 15, 2026** — original migration deadline, later **extended to July 31, 2026**.
+- **May 15, 2026** — original migration deadline; Intuit's announcement now states:
+  *"The deadline to complete the migration has been extended to **July 31, 2026**."*
 - A toggle on the app's webhooks subscription page switches the delivery format.
 - **HMAC validation did not change** — same `intuit-signature` header, same
   HMAC-SHA256 over the raw body with your verifier token. Only the payload shape moved.
@@ -84,18 +85,20 @@ curl -s -X POST localhost:3000/webhooks -H "content-type: application/json" \
 Both produce identical normalized events. Post any *other* JSON shape and the receiver
 raises an `[ALARM]` and increments an `unknownFormat` counter instead of swallowing it.
 
-> Fixtures: the legacy payload follows Intuit's long-documented envelope; the CloudEvents
-> payload follows the structure in Intuit's official sample app. Before relying on this
-> in production, capture a real delivery from your own sandbox with the format toggle
-> flipped and diff it against the fixture.
+> Fixtures are **synthetic**: the legacy payload follows Intuit's long-documented
+> envelope; the CloudEvents payload follows the structure in Intuit's official sample
+> app. Before relying on this in production, capture a real delivery from your own
+> sandbox with the format toggle flipped and diff it against the fixture.
 
 ## Detection — how you'd catch this in production
 
 The failure emits no errors, so detection must key on **absence and unknowns**:
 
-1. **Unknown-format counter (leading indicator).** Any payload your parser can't
-   classify increments a counter and pages at `> 0`. This catches the failure on the
-   *first* delivery after the cutover, not weeks later. (~5 lines; see
+1. **Unknown-format + rejected-event counters (leading indicators).** Any payload your
+   parser can't classify — and any *item inside* a recognized payload it can't
+   normalize (a new operation type, a changed `type` string, missing IDs) — increments
+   a counter and pages at `> 0`. This catches the failure on the *first* delivery
+   after the cutover, not weeks later. (~10 lines; see
    [`receiver.ts`](../../src/webhooks/receiver.ts).)
 2. **Event-volume watchdog (trailing indicator).** Alert when webhook events processed
    per hour drops to zero while the business is active. Catches this failure *and*
@@ -128,4 +131,4 @@ including this one, to one sweep interval. That pattern (and CDC's own sharp edg
 - [Intuit's official CloudEvents webhook sample app](https://github.com/IntuitDeveloper/SampleApp-Webhooks-Java-Cloudevents)
 - [CNCF CloudEvents specification](https://cloudevents.io/)
 - [Intuit: webhooks documentation](https://developer.intuit.com/app/developer/qbo/docs/develop/webhooks)
-- Deadline extension to July 31, 2026 reported by third parties (e.g. [maesn](https://www.maesn.com/blog/quickbooks-webhooks-cloudevents)); verify current dates on the developer portal.
+- The July 31, 2026 extension is stated in Intuit's own announcement (first link above); verify current dates on the developer portal before acting.
