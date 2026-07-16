@@ -94,9 +94,9 @@ portal as of **July 2026** — always confirm current values before relying on t
 
 ## Roadmap
 
-Chapters ship one at a time, roughly bi-weekly, in the order of the catalog table —
-prioritized by how silently each failure damages data. Chapter 08 turns the detection
-ideas from chapters 1–7 into a small reusable canary/reconciliation harness.
+Chapters ship one at a time, in the order of the catalog table — prioritized by how
+silently each failure damages data. Chapter 08 turns the detection ideas from
+chapters 1–7 into a small reusable canary/reconciliation harness.
 
 Found a failure mode this catalog is missing, or a fixture that drifted from current
 platform behavior? Issues and PRs welcome.
