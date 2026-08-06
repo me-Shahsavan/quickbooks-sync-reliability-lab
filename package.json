@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "description": "A failure-mode catalog for QuickBooks Online integrations — every entry reproducible, every fix a runbook.",
   "type": "module",
-  "private": true,
   "scripts": {
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",

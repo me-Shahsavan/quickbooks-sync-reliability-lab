@@ -21,16 +21,23 @@ npm install && npm test   # reproduces chapter 01 offline in ~30 seconds — no 
 
 ## The catalog
 
-| # | Failure mode | Severity | Status |
-|---|---|---|---|
-| 01 | [The CloudEvents migration: how your webhooks silently stop](failures/01-cloudevents-migration/README.md) | High — silent data loss | ✅ Published |
-| 02 | SyncToken races: two writers, one invoice, and the stale-object error (5010) you must re-read before retrying | High | 🔜 Roadmap |
-| 03 | The sparse-update trap: how a full-object update nulls fields you never touched | High — data loss | 🔜 Roadmap |
-| 04 | CDC's 30-day window: when your safety net expires | Medium | 🔜 Roadmap |
-| 05 | 429 storms: jittered backoff vs. synchronized retry stampedes | Medium | 🔜 Roadmap |
-| 06 | Duplicates from overlapping sync paths, and idempotent write design | High | 🔜 Roadmap |
-| 07 | The 100-day refresh token (and its new 5-year ceiling) | Medium | 🔜 Roadmap |
-| 08 | Canary reconciliation: measuring your webhook pipeline's real miss rate | — (tooling) | 🔜 Roadmap |
+**Published — reproducible today:**
+
+| # | Failure mode | Severity |
+|---|---|---|
+| 01 | [The CloudEvents migration: how your webhooks silently stop](failures/01-cloudevents-migration/README.md) | High — silent data loss |
+
+**Planned**, in the order they ship — prioritized by how silently each one damages data:
+
+| # | Failure mode | Severity |
+|---|---|---|
+| 02 | SyncToken races: two writers, one invoice, and the stale-object error (5010) you must re-read before retrying | High |
+| 03 | The sparse-update trap: how a full-object update nulls fields you never touched | High — data loss |
+| 04 | CDC's 30-day window: when your safety net expires | Medium |
+| 05 | 429 storms: jittered backoff vs. synchronized retry stampedes | Medium |
+| 06 | Duplicates from overlapping sync paths, and idempotent write design | High |
+| 07 | The 100-day refresh token (and its new 5-year ceiling) | Medium |
+| 08 | Canary reconciliation: measuring your webhook pipeline's real miss rate | — (tooling) |
 
 Each chapter follows the same shape:
 
@@ -94,6 +101,11 @@ RFC rather than asserted from memory.
 
 Platform facts (deadlines, limits, formats) were verified against Intuit's developer
 portal as of **July 2026** — always confirm current values before relying on them.
+
+Drafting and review were done with AI assistance, which the commit history shows. The
+judgment calls are mine, and the verification is what makes them trustworthy: every
+platform fact traces to a public Intuit source, and every reliability claim in this
+README is pinned to a test in `test/` that you can run offline in about 30 seconds.
 
 ## Roadmap
 
