@@ -15,8 +15,32 @@ This lab documents those failure modes the way an SRE team would: each one **rep
 in code**, with a **detection strategy**, an **operational runbook**, and a **blameless
 postmortem** showing how it plays out when missed.
 
+```mermaid
+flowchart LR
+    A[Intuit changes the<br/>webhook format] --> B[Your receiver sees a<br/>payload it does not know]
+    B -->|today: silently dropped| C[Two ledgers drift<br/>no error, no alert]
+    C --> D[An accountant finds it<br/>at month-end]
+    B -->|with this lab| E[unknownFormat alarm<br/>fires on event 1]
+    E --> F[Runbook: dual-format parser,<br/>re-sync the gap window]
+    style C fill:#fde8e8,stroke:#c0392b
+    style D fill:#fde8e8,stroke:#c0392b
+    style E fill:#e8f5e9,stroke:#2e7d32
+    style F fill:#e8f5e9,stroke:#2e7d32
+```
+
 ```bash
 npm install && npm test   # reproduces chapter 01 offline in ~30 seconds — no Intuit account needed
+```
+
+What you see (27 tests, about half a second, no network):
+
+```text
+✔ THE FAILURE MODE: naive legacy parser silently drops a CloudEvents payload
+✔ normalizer surfaces unknown formats instead of swallowing them
+✔ normalizeAny propagates the rejected count as its own alarm signal
+✔ signature is over RAW bytes — re-serialized JSON with different key order fails
+✔ 5xx transient errors are retried
+ℹ tests 27  ℹ pass 27  ℹ fail 0
 ```
 
 ## The catalog
@@ -43,21 +67,6 @@ each one damages data. No schedule implied; what's published above is what exist
 Each chapter follows the same shape:
 
 **Context → What breaks → Reproduce it → Detect it → Runbook → Postmortem → The deeper lesson**
-
-## Why these artifacts
-
-Reliability work is only as good as its operational artifacts. Alongside the code:
-
-- **[RFC-001 — What a trustworthy sync looks like](docs/rfc-001-trustworthy-sync.md)** —
-  the six design principles every chapter tests against, with alternatives considered.
-- **[SLOs for a two-way accounting sync](docs/slo.md)** — freshness, delivery coverage,
-  divergence, and write safety, with measurement methods and an error-budget policy.
-  Transport metrics stay green through most real sync failures; these don't.
-- **[Decision log](docs/decisions.md)** — why a lab and not a product, why fixtures
-  before sandbox, why no SDK, and the clean-room sourcing policy.
-- Per chapter: a **runbook** (e.g. [migrating webhooks to CloudEvents](failures/01-cloudevents-migration/runbook.md))
-  and a **simulated postmortem** in Google SRE format
-  (e.g. [19 days of silently dropped events](failures/01-cloudevents-migration/postmortem.md)).
 
 ## How the harness is organized
 
@@ -90,6 +99,21 @@ flowchart LR
 - Every chapter runs offline first, from synthetic fixtures that follow Intuit's
   documented payload shapes; pointing it at your own sandbox company is the optional
   second step (`.env.example`).
+
+## Why these artifacts
+
+Reliability work is only as good as its operational artifacts. Alongside the code:
+
+- **[RFC-001 — What a trustworthy sync looks like](docs/rfc-001-trustworthy-sync.md)** —
+  the six design principles every chapter tests against, with alternatives considered.
+- **[SLOs for a two-way accounting sync](docs/slo.md)** — freshness, delivery coverage,
+  divergence, and write safety, with measurement methods and an error-budget policy.
+  Transport metrics stay green through most real sync failures; these don't.
+- **[Decision log](docs/decisions.md)** — why a lab and not a product, why fixtures
+  before sandbox, why no SDK, and the clean-room sourcing policy.
+- Per chapter: a **runbook** (e.g. [migrating webhooks to CloudEvents](failures/01-cloudevents-migration/runbook.md))
+  and a **simulated postmortem** in Google SRE format
+  (e.g. [19 days of silently dropped events](failures/01-cloudevents-migration/postmortem.md)).
 
 ## Method & sources
 
